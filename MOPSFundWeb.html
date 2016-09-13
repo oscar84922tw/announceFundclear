@@ -1,0 +1,465 @@
+<!--
+/*
+程式名稱：D02_01-公告-歷史淨值查詢
+
+程式日期：2007-11-01
+
+程式作者：中菲
+
+程式說明：查詢歷史淨值
+
+表單編號：
+
+首次簽入之Stream：OPFA_INT
+
+=====================================================================
+
+修改記錄：OPFA_DEV1\1 (u950142) 2009-06-23 ： R090624_聯博投顧旗下四檔印度基金備註修改(程式)
+
+=====================================================================
+*/
+-->
+
+
+
+
+
+
+
+<script>alert('無驗證碼，請正常登入!!');history.back();</script>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+	<HEAD>
+		<META http-equiv="Content-Type" content="text/html; charset=BIG5">
+		<META name="GENERATOR" content="IBM WebSphere Studio">
+		<TITLE>淨值查詢 - 歷史淨值查詢</TITLE>
+	</HEAD>
+	<link href="CSS/style_ts.css" rel="stylesheet" type="text/css">
+	<style type="text/css">
+		.WeekDay {color: black}
+		.Sat {color: green}
+		.Sun {color: red}
+	</style>
+
+	<script src="include/Utility.js"></script>
+	
+
+	<SCRIPT LANGUAGE="JavaScript" src="./JS/Misc.js"></SCRIPT>
+	<SCRIPT LANGUAGE="JavaScript" src="./JS/XmlUtility.js"></SCRIPT>
+	<SCRIPT LANGUAGE="JavaScript" src="./JS/DataObject.js"></SCRIPT>
+	<SCRIPT LANGUAGE="JavaScript" src="./JS/ReportUtility.js"></SCRIPT>
+	<SCRIPT LANGUAGE="JavaScript" src="./JS/System.js"></SCRIPT>
+	<SCRIPT LANGUAGE="JavaScript" src="./JS/String.js"></SCRIPT>
+	<SCRIPT LANGUAGE="JavaScript" src="./JS/Common.js"></SCRIPT>
+
+	
+	<script language="javascript">
+	var formName = "frmD01";
+	var appURL = self.location.pathname;
+	
+	
+	function  days_OnClick() {
+	
+		var formObj = document.forms[formName];
+		var days = "";
+		
+		for (i = 0; i < formObj.days.length; i++) {
+			if (formObj.days[i].checked == true) {
+				days = formObj.days[i].value;
+				break;
+			}
+		}
+		
+		switch (days) {
+			case "1095":
+			case "1825":
+				formObj.beginDate.readOnly = true;
+				formObj.btnBeginDate.disabled = true;
+				formObj.endDate.readOnly = true;
+				formObj.btnEndDate.disabled = true;
+				break;
+			
+			default:
+				formObj.beginDate.readOnly = false;
+				formObj.btnBeginDate.disabled = false;
+				formObj.endDate.readOnly = false;
+				formObj.btnEndDate.disabled = false;		
+				break;
+		}
+		
+		var dayCurrent = "2016/09/13";
+		var day1 = "2016/09/12";
+		var day1095 = "2013/09/14";
+		var day1825 = "2011/09/15";
+		
+		switch (days) {
+			
+			case "1095":
+				formObj.beginDate.value = day1095;
+				formObj.endDate.value = day1;
+				break;
+				
+			case "1825":
+				formObj.beginDate.value = day1825;
+				formObj.endDate.value = day1;
+				break;
+				
+			default:
+				if (formObj.beginDate.value == "" && formObj.endDate.value) {
+					formObj.beginDate.value = "";
+					formObj.endDate.value = day1;
+				}
+				break;			
+		}
+	}
+	
+	function btnQuery_OnClick() {
+	
+		var formObj = document.forms[formName];
+		
+		var agentId = formObj.agentId.value;
+		var fundcomId = formObj.fundcomId.value;
+		var fundId = formObj.fundId.value;
+		
+		var beginDate = formObj.beginDate.value;
+		var endDate = formObj.endDate.value;
+		
+		var currentDate = getCurrentDateStr();
+		if (beginDate != "" && endDate != "") {
+		
+	if (formObj.agentId.value == "") {
+		alert("請選擇總代理!!");
+		return;
+	}
+	
+	if (formObj.fundcomId.value == "") {
+		alert("請選擇境外基金機構!!");
+		return;
+	}
+	
+	if (formObj.fundId.value == "") {
+		alert("請選擇基金名稱!!");
+		return ;
+	}
+
+	if (formObj.rand.value.length!=4	){
+		alert("請輸入4位數驗証碼!!");
+		return false;
+	}	
+		
+			if (beginDate > endDate) {
+				alert("開始日期必需小於結束日期!!");
+				return;
+			}
+		
+			if (endDate > currentDate) {
+				alert("結束日期必需小於今天!!");
+				return;
+			}
+			
+			/* 2006/11/02 Lynn 基金淨基查詢期間可超過一年 (bug:566)*/	
+			if((new Date(endDate)-new Date(beginDate))/1000/60/60/24>365 && document.getElementById("selfchoice").checked == 'true') {
+				alert("自訂日期之期間不可超過一年!!");
+				return;		
+			}
+		}
+		
+		for (i = 0; i < formObj.days.length; i++) {
+			if (formObj.days[i].checked == true) {
+				var days = formObj.days[i].value;
+			}
+		}
+		
+		if (formObj.fundcomId.value != "" &&formObj.fundId.value != "") {
+			if (days != "" || (formObj.beginDate.value != "" && formObj.endDate.value != "")) {
+				self.location = appURL + "?fundcomId=" + fundcomId + "&fundId=" +  fundId+ "&days=" + days + "&beginDate=" + beginDate + "&endDate=" + endDate+"&agentId="+agentId;
+			} else {
+				alert("必需選擇查詢天數或日期區間!!");
+								return;
+			}
+		} else {
+			alert("請先選擇境外基金機構及基金名稱!!");
+							return;
+		}
+			document.frmD01.submit()
+	}
+	
+	function openWin(fieldName) {
+	
+		var formObj = document.forms[formName];
+		var current = new Date();
+		var rtnValue = openCalendar(current.getYear(), current.getMonth() + 1);
+		
+		if (rtnValue != null) {
+			formObj.elements[fieldName].value = rtnValue.date;
+		}
+	}
+	
+	function openCalendar(year, month) {
+	
+		//var url = "calendar.htm";
+		var url = "include/calendar.htm";
+		var parmObj = new Object();
+		parmObj.year = year;
+		parmObj.month = month; 
+		
+		var rtnValue = window.showModalDialog(url, parmObj, "dialogWidth: 260px; dialogHeight: 285px; status: no;");
+		return rtnValue;
+	}
+	
+	function getCurrentDateStr() {
+	
+		var currentDate = new Date();
+		var currentYear = currentDate.getYear();
+		if (currentYear<2000){
+			currentYear=currentYear+1900;
+		}		
+		var currentMonth = currentDate.getMonth() + 1;
+		currentMonth = "00" + currentMonth;
+		currentMonth = currentMonth.substring(currentMonth.length - 2, currentMonth.length);
+		var currentDay = currentDate.getDate();
+		currentDay = "00" + currentDay;
+		currentDay = currentDay.substring(currentDay.length - 2, currentDay.length);
+		
+		var currentDateStr = currentYear + "/" + currentMonth + "/" + currentDay;
+		return currentDateStr;
+	}
+	
+	
+	//產生總代理選單
+	function getAgentOptions(){
+		
+		var xmlRtn = null;
+		
+		var ddo = new DDO();
+		var row = new Row();
+		
+		ddo.init();
+		ddo.setAction("AffixAction.SQLQuery");
+		row.setQuery("OTHERS00SQ03");	
+		
+		ddo.appendRow("qData", row);
+		
+		xmlRtn = ddo.send();
+		
+		var oTemp = xmlTranObj(xmlRtn);
+	
+		var oSelData = new Object();
+		
+		//由obj產生select
+		
+		for (var i in oTemp) {
+			oSelData["all"]="全部";
+			oSelData[oTemp[i].organizCode] = oTemp[i].organizName;
+		}
+		
+		objToOptionsNoKey(document.getElementById("agentId"), oSelData, "",  "-- 請選擇 --");
+		
+	}
+	
+	//產生境外基金機構選單
+	function getFundcomOptions(){
+		
+		var xmlRtn = null;
+		
+		var ddo = new DDO();
+		var row = new Row();
+		
+		ddo.init();
+		ddo.setAction("AffixAction.SQLQuery");
+		row.setQuery("OTHERS00SQ04");	
+		
+		if (document.frmD01.agentId.value=="all" || document.frmD01.agentId.value==""){
+			row.appendParm("FUND_ORGANIZ_CODE", "java.lang.String");
+		} else {
+			row.appendParm("'"+document.frmD01.agentId.value+"'", "java.lang.String");
+		}
+		ddo.appendRow("qData", row);	
+		xmlRtn = ddo.send();
+		
+		var oTemp = xmlTranObj(xmlRtn);
+	
+		var oSelData = new Object();
+		
+		//由obj產生select
+		
+		for (var i in oTemp) {
+			oSelData["all"]="全部";
+			oSelData[oTemp[i].fundcomNo] = oTemp[i].fundcomName;
+		}
+		
+		objToOptionsNoKey(document.getElementById("fundcomId"), oSelData, "",  "-- 請選擇 --");
+		
+	}
+	
+	//產生基金選單
+	function getFundOptions(){
+		
+		var xmlRtn = null;
+		
+		var ddo = new DDO();
+		var row = new Row();
+		
+		ddo.init();
+		ddo.setAction("AffixAction.SQLQuery");
+		row.setQuery("OTHERS00SQ06");	
+		
+		if (document.frmD01.agentId.value=="all" || document.frmD01.agentId.value==""){
+			row.appendParm("FUND_ORGANIZ_CODE", "java.lang.String");
+		} else {
+			row.appendParm("'"+document.frmD01.agentId.value+"'", "java.lang.String");
+		}
+	
+		if (document.frmD01.fundcomId.value=="all"){
+			row.appendParm("FUND_M_ORGANIZ_CODE", "java.lang.String");
+		} else {
+			row.appendParm("'"+document.frmD01.fundcomId.value+"'", "java.lang.String");
+		}
+	
+		ddo.appendRow("qData", row);	
+		xmlRtn = ddo.send();
+		
+		var oTemp = xmlTranObj(xmlRtn);
+	
+		var oSelData = new Object();
+		
+		//由obj產生select
+		
+		for (var i in oTemp) {
+			//oSelData["all"]="全部";
+			if (oTemp[i].fundPreName == "" || oTemp[i].fundPreName == null) {
+				oSelData[oTemp[i].fundCode] = oTemp[i].fundName ;
+			} else {
+				oSelData[oTemp[i].fundCode] = oTemp[i].fundName + "    " + "(原):" + oTemp[i].fundPreName;
+			}
+		}
+		
+		objToOptionsNoKey(document.getElementById("fundId"), oSelData, "",  "-- 請選擇 --");
+		
+	}	
+	
+	</script>
+
+	<BODY topmargin="0" leftmargin="0"
+		onload="getAgentOptions();getFundcomOptions();getFundOptions();days_OnClick();">
+
+<!--		onDRAGSTART="window.event.returnValue=false" onCONTEXTMENU="window.event.returnValue=false" onSelectStart="event.returnValue=false" 
+-->	
+		<table width="700" height="100%" border="0" cellpadding="0" cellspacing="0" align="center">
+			<tr>
+				<td align="center" valign="top">
+				<!-- Page Content -->
+				
+				<table width="100%" border=0 align="center" cellPadding=0 cellSpacing=0>
+					<tr> 
+						<td> 
+							<table cellSpacing=1 cellPadding=0 border=0>
+								<tr> 
+									<td> 
+										<table cellSpacing=0 cellPadding=0 border=0>
+											<tr>
+												<td><img height=20 src="images/tab1-1.gif" width=5></td>
+												<td class="nav" align="middle" width="120" background="images/tab1-2.gif">歷史淨值查詢</td>
+												<td><img height=20 src="images/tab1-3.gif" width=6></td>
+											</tr>
+										</table>
+									</td>
+								</tr>
+							</table>
+						</td>
+					</tr>
+				</table>
+		        <table width="700" border="0" cellpadding="0" cellspacing="0">
+		            <tr>
+		            	<td class="thLeft">
+							<!-- Query Form -->
+								<form name="frmD01" method="post">
+									<table width="100%" border="0" cellpadding="1" cellspacing="1">
+						
+									    <tr bgcolor="#AAC8D9">
+											<td nowrap="true" align="right">總代理：</td>
+											<td colspan="3">
+											  <select name="agentId" id="agentId" onchange="getFundcomOptions();getFundOptions();"/>
+											</td>
+										</tr>
+
+										<tr bgcolor="#AAC8D9">
+											<td nowrap="true" align="right">
+												境外基金機構：
+											</td>
+											<td>
+												<select name="fundcomId" id="fundcomId" onchange="getFundOptions();"/>
+											</td>
+										</tr>
+										<tr  bgcolor="#AAC8D9">
+											<td nowrap="true" align="right">
+												基金名稱：
+											</td>
+											<td>
+												<select name="fundId" id="fundId"/>
+											</td>
+										</tr>
+										<tr bgcolor="#AAC8D9">
+											<td nowrap="true" align="right">
+												淨值日期：
+											</td>
+											<td colspan="3">
+												資料期間：
+												<input type="radio" id="selfchoice" name="days" value="" checked onClick="days_OnClick()"> 自訂日期
+
+												<input type="text" name="beginDate" size="12" value="2016/09/06">
+												<input type="button" name="btnBeginDate" value="..." onClick="openWin('beginDate')"> 
+												~ 
+												<input type="text" name="endDate" size="12" value="2016/09/12">
+												<input type="button" name="btnEndDate" value="..." onClick="openWin('endDate')">
+												<input type="radio" name="days" value="1095" onClick="days_OnClick()"> 三年
+<input type="radio" name="days" value="1825" onClick="days_OnClick()"> 五年
+
+											</td>
+										</tr>	
+										<tr bgcolor="#AAC8D9">
+											<td colspan="4">
+								請輸入右方圖形數字：<img border=0 src="image">
+								<input type=text name=rand size="4" maxlength=4 value="">
+								<input type="button" name="btnQuery" value="送出查詢" onClick="btnQuery_OnClick()">
+												<br>如無法看到淨值圖，請依<a href="/MOPSFundWeb/include/JAVA Runtime Environment.doc" target="_blank">本文件</a>下載、安裝所需Java Runtime元件。<br>
+											</td>
+										</tr>							
+									</table>
+								<!-- </form> -->
+							<!-- Query Form -->
+		            		</td>
+		            	</tr>
+		            	<tr>
+		            		<td align="left" valign="top">
+							<!-- Main Content -->
+							
+							
+							<!-- Main Content -->		
+		            		</td>
+		            	</tr>	
+		            </table>
+				<!-- Page Content -->
+				</td>
+			</tr>
+			<tr>
+				<td align="center" valign="bottom">
+					
+<META http-equiv=Content-Type content="text/html; charset=BIG5">
+      <TABLE cellSpacing=0 cellPadding=5 width="95%" border=0>
+        <TR> 
+          <TD> <DIV align=center>
+          	<span class="copyright">本網站各項資料均由境外基金總代理輸入確認後，由本系統對外公佈<br>資料若有虛偽不實或錯誤，概由該公司負責<br>
+使用者可自行下載參考，惟於法令範圍內須合理使用，不得侵害他人權益。
+            <br>本網頁最佳瀏覽建議解析度1024 × 768<br>
+            </DIV></TD>
+        </TR>
+      </TABLE>
+				</td>
+			</tr>
+		</table>
+	</BODY>
+</HTML>
+
+
+
